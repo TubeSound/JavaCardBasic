@@ -70,8 +70,8 @@ try {
         $PackageOutput = Join-Path $OutputDir 'io\github\tubesound\javacardbasic\card\javacard'
         foreach ($extension in @('cap', 'exp', 'jca')) {
             $artifact = Join-Path $PackageOutput "card.$extension"
-            if (!(Test-Path -LiteralPath $artifact -PathType Leaf)
-                    -or (Get-Item -LiteralPath $artifact).Length -eq 0) {
+            if (!(Test-Path -LiteralPath $artifact -PathType Leaf) -or
+                    (Get-Item -LiteralPath $artifact).Length -eq 0) {
                 throw "Converter did not produce a non-empty output: $artifact"
             }
             Write-Host "Created: $artifact"
