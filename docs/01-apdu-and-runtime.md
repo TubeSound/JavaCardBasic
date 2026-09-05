@@ -27,12 +27,12 @@ Response: 50 49 4E 47 90 00
 | レスポンスデータ | `50 49 4E 47` | ASCIIの `PING` |
 | SW1 / SW2 | `90 / 00` | 正常終了 |
 
-`new CommandAPDU(0, 0x10, 0, 0, 4)` の最後の引数がLeです。
-4引数版ではLeが付かないため、この課題では5引数版を使います。短いAPDUのLeが `00` の場合は256バイトを意味します。
+テストでは `new byte[] {0x00, 0x10, 0x00, 0x00, 0x04}` を渡します。5番目のバイトがLeです。
+Leが `00` の短いAPDUは256バイトを意味します。jCardSimの低レベルAPIを使うことで、APDUの実際のバイト列がコードから直接読めます。
 
 ## 実行順序
 
-1. テストが `CardSimulator` を作成します。
+1. テストが `Simulator` を作成します。
 2. `installApplet()` が `SampleApplet.install()` を呼びます。
 3. Appletが `register()` で実行環境へ登録されます。
 4. `selectApplet()` で選択し、SELECTを受けた `process()` が正常に戻ります。
@@ -78,4 +78,5 @@ Leなしや受信データ付きのPINGはこの命令の仕様外で、その�
 
 - [Oracle Java Card 3.0.5仕様・API](https://docs.oracle.com/javacard/3.0.5/index.html)
 - [jCardSim forkの説明](https://github.com/ph4r05/jcardsim)
-- [Java SE CommandAPDU](https://docs.oracle.com/en/java/javase/25/docs/api/java.smartcardio/javax/smartcardio/CommandAPDU.html)
+- [jCardSim Simulatorの実装](https://github.com/ph4r05/jcardsim/blob/master/src/main/java/com/licel/jcardsim/base/Simulator.java)
+- [VS Code Javaのjava.smartcardio解決問題](https://github.com/redhat-developer/vscode-java/issues/2841)

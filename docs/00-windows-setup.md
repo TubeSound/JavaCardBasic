@@ -120,6 +120,7 @@ CAPが必要になったら[追加導入](02-build-cap.md)へ進みます。
 | 依存関係を取得できない | Centralへの接続と社内プロキシを確認。社内設定はユーザーの `.m2/settings.xml` に置く |
 | `com.licel:jcardsim:3.0.5` が見つからない | POMは `com.klinec:jcardsim:3.0.6.0` を使う。Javaのimportは `com.licel...` のままでよい |
 | Testingにテストが出ない | `pom.xml` のフォルダーを開き、JavaのStandard Modeで読み込む。必要なら `Java: Clean Java Language Server Workspace` を実行 |
+| `Cannot find the class file for javax.smartcardio.CommandAPDU` | `git pull` で修正版を取得し、`Java: Clean Java Language Server Workspace` → `Reload and delete` を実行する。古い `SampleAppletTest.java` に `javax.smartcardio` のimportが残っていないことを確認する |
 | テストは成功するがCAPタスクで止まる | Toolsと `JC_HOME_TOOLS` を[設定する](02-build-cap.md) |
 | PowerShellスクリプトの実行が拒否される | 組織の実行ポリシーを確認。ファイルのブロックや署名の問題は管理方針に従って解消する |
 | ブレークポイントが無効になる | Javaプロジェクトの読み込み完了を待ち、デバッグを再実行する |

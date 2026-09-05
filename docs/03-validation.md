@@ -9,10 +9,10 @@
 | SDK 3.0.5にはJDK 11が高互換 | 旧SDKの公式確認環境はJDK 7／8。独自アプリ開発にはJDK 7と記載 | Oracle JDK 25＋現行Tools 26.0を採用。対象APIは3.0.5を維持 [1][2][3] |
 | 旧SDKをZIP展開し `JC_HOME` を設定 | 旧SDKはMSIと `JC_CLASSIC_HOME` を使用 | 現行ToolsのZIPと `JC_HOME_TOOLS` を使用 [1][4] |
 | `com.licel:jcardsim:3.0.5` | Maven Centralにそのバージョンはない。Licel側のGitHub Packagesは別の配布先 | Centralのfork `com.klinec:jcardsim:3.0.6.0` を固定。「Java Card仕様3.0.6」という意味ではない [5][6] |
-| `source/target=11` をCAPへ変換 | PCのJDKとConverter入力形式を混同している | Appletは `--release 8 -g`、テストはrelease 11。CAP用はOracle APIで再コンパイル [2] |
+| `source/target=11` をCAPへ変換 | PCのJDKとConverter入力形式を混同している | MavenのApplet／テストはrelease 8。CAP用AppletもOracle APIで `--release 8 -g` により再コンパイル [2] |
 | JUnit 5の依存関係だけ追加 | Surefire未指定ではMavenの既定プラグインに実行可否が左右される | Surefire 3.5.5と `failIfNoTests=true`。JUnit 5系の5.14.4を使用 [7] |
 | 空のインストールデータからAIDを読む | 2引数 `installApplet()` は空の配列を渡す | デフォルトAIDを使う `register()` に修正 [8] |
-| 4引数 `CommandAPDU` でPING応答を要求 | LeなしのCase 1になっている | 5引数版でLe=4を指定。応答の文字コードはUS-ASCIIに固定 [9] |
+| 4引数 `CommandAPDU` でPING応答を要求 | LeなしのCase 1。さらにVS CodeのJDT/m2eでは `java.smartcardio` がビルドパスから欠ける既知問題がある | `Simulator` に5バイトの生APDUを渡し、Le=4を明示。`javax.smartcardio` への依存を除去 [8][9][12] |
 | `&& %JC_HOME%...` を実行 | `&&` はWindows PowerShell 5.1非対応。`%変数%` はcmdの書式 | process形式のタスク、`$env:`、引数配列、終了コード判定に変更 [10] |
 | 出力先はルートの `com/example/javacard` | `-d` 未指定なら `-classdir` が出力ルート | `-d target/cap` を明示し、成果物を確認 [3] |
 | JDK 11だけで言語サーバーも動く | 現行Universal版はJava 21以上。Windows x64版には実行用JRE同梱 | 言語サーバー用JDKとプロジェクトの形式を区別して説明 [11] |
@@ -48,3 +48,4 @@ Actionsの成功はCAP変換、Windows 11のGUI、実機の成功を保証しま
 9. [Oracle Java SE CommandAPDU API](https://docs.oracle.com/en/java/javase/25/docs/api/java.smartcardio/javax/smartcardio/CommandAPDU.html)
 10. [Microsoft PowerShellのパイプラインチェーン演算子](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pipeline_chain_operators)
 11. [Java拡張のJDK要件と同梱JRE](https://github.com/redhat-developer/vscode-java#java-tooling-jdk)
+12. [m2eのjava.smartcardioモジュール反映問題](https://github.com/eclipse-m2e/m2e-core/discussions/1769)

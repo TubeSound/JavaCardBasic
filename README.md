@@ -50,6 +50,10 @@ Oracle Java Card SDK、カード、カードリーダーは、このテストに
 3. テストの上の **Debug Test**、またはTestingビューのデバッグボタンを選びます。
 4. F10／F11で進め、`buffer` の先頭5バイトと `le` を確認します。
 
+テストはjCardSimの `Simulator` にAPDUの生バイト列を渡します。VS CodeのJava言語サーバーが `java.smartcardio` モジュールをビルドパスへ追加できない既知の問題を避けるため、`CardSimulator`、`CommandAPDU`、`ResponseAPDU` は使用しません。
+
+以前の版で `Cannot find the class file for javax.smartcardio.CommandAPDU` が表示された場合は、最新のmainを取得し、コマンドパレットから **Java: Clean Java Language Server Workspace** → **Reload and delete** を実行してください。
+
 ここで停止するのはPC上のjCardSimが呼び出したJavaクラスです。実機やOracle Simulator内のCAPに接続するデバッグではありません。
 
 ## CAPを生成する
