@@ -21,8 +21,9 @@ $clientSources = @(Get-ChildItem (Join-Path $ProjectRoot 'src\client\java') -Fil
     Sort-Object FullName | ForEach-Object FullName)
 
 Write-Host 'Compiling Java Card applet with Oracle JDK 25...'
+# Oracle Converter input requires Java 8 class files (major version 52).
 & $JavacExe '-g' '-d' $AppletClasses '-cp' $CardApi `
-    '-source' '10' '-target' '10' '-Xlint:-options' @appletSources
+    '--release' '8' @appletSources
 if ($LASTEXITCODE -ne 0) {
     throw 'Applet compilation failed.'
 }
