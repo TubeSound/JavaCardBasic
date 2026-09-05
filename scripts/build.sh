@@ -31,8 +31,9 @@ mapfile -d '' -t client_sources < <(
 )
 
 echo "Compiling Java Card applet with Oracle JDK 25..."
+# Oracle Converter input requires Java 8 class files (major version 52).
 "$JAVA_HOME/bin/javac" -g -d "$APPLET_CLASSES" -cp "$CARD_API" \
-    -source 10 -target 10 -Xlint:-options "${applet_sources[@]}"
+    --release 8 "${applet_sources[@]}"
 
 echo "Converting and verifying CAP with Oracle JCDK Tools 26.0..."
 "$JC_HOME_TOOLS/bin/converter.sh" \

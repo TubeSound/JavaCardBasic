@@ -66,9 +66,14 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ビルドでは次を実行します。
 
-1. Oracle JDK 25の`javac`でアプレットをコンパイルする。
+1. Oracle JDK 25の`javac --release 8 -g`でアプレットをコンパイルする。
 2. Oracle JCDK Tools 26.0の`converter`でCAP、EXP、JCAを生成・検証する。
 3. Oracle JDK 25とSimulator同梱のAMService／Socket ProviderでPC側クライアントをコンパイルする。
+
+`--release 8`はConverterへ渡すクラスをJava 8形式（class major version 52）にする指定です。
+PC側で動かすJDKのバージョン25、クラス形式の8、CAPの対象となるJava Card仕様3.2は、それぞれ別の値です。
+`-g`はConverterがローカル変数の型を判断するための情報を生成します。
+このコンパイル指定でも、アプレットで使える機能はJava Cardの言語サブセットとAPIに限られます。
 
 生成物は`build/`へ置かれます。
 
@@ -100,4 +105,5 @@ WindowsにOracle Java Card PCSC Driverを設定した場合は、次の形式で
 - [Simulatorの初期構成](https://docs.oracle.com/en/java/javacard/3.2/jcdksu/configuring-java-card-development-kit-simulator.html)
 - [Simulatorのコマンドライン](https://docs.oracle.com/en/java/javacard/3.2/jcdksu/java-card-development-kit-simulator-command-line.html)
 - [Converterの実行方法](https://docs.oracle.com/en/java/javacard/3.2/jctug/running-converter.html)
+- [アプレットのJavaコンパイラ設定](https://docs.oracle.com/en/java/javacard/3.2/jctug/setting-java-compiler-options.html)
 - [AMServiceクライアントのコンパイルと実行](https://docs.oracle.com/en/java/javacard/3.2/jcdksu/running-client-application-applet-management.html)
