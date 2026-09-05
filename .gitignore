@@ -1,4 +1,4 @@
-# Oracle JDK / Java Card build output
+# Build output
 build/
 target/
 *.class
@@ -9,6 +9,9 @@ target/
 # Downloaded Oracle products stay outside this repository
 oracle-jdk*/
 java_card_devkit_*/
+*.jar
+*.zip
+*.tar.gz
 
 # Local editor files
 .idea/

@@ -1,0 +1,46 @@
+name: Applet tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: Java Card Basic
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Java Card Basic
+      - name: Install Oracle JDK 25
+        uses: oracle-actions/setup-java@v1
+        with:
+          website: oracle.com
+          release: '25'
+      - name: Parse Windows CAP script
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          [void][scriptblock]::Create((Get-Content -Raw .\scripts\build-cap.ps1))
+      - name: Test on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          .\mvnw.cmd --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\mvnw.cmd --batch-mode --no-transfer-progress clean test
+          exit $LASTEXITCODE
+      - name: Test on Linux
+        if: runner.os == 'Linux'
+        run: ./mvnw --batch-mode --no-transfer-progress clean test
