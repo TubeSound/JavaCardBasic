@@ -1,130 +1,81 @@
-# 第1回: Java Card OSとAPDUをコードで追う
+# APDUとJava Card実行環境を学ぶ
 
-## 1. Java Card OSのどこを作るのか
+## この課題で作るもの
 
-Java Card搭載製品には、カード製品の実装としてJava Card Virtual Machine、Runtime Environment、API、アプレット管理機能などがあります。
-この教材で作るのは、その上で動く`HelloApplet`です。
-PC側の`HelloClient`は、Oracle JDK上で動き、Oracle AMServiceとSocket Providerを介してOracle Simulatorへ接続します。
+カード上で実行されるプログラムが **Applet** です。`SampleApplet` はPINGコマンドを受けると固定の4バイト `PING` を返します。受信データをそのまま返すEchoではありません。
 
-```mermaid
-flowchart TD
-    C["HelloClient<br/>Oracle JDK 25"] --> A["Oracle AMService / Socket Provider"]
-    A --> S["Oracle JCDK Simulator 26.0"]
-    S --> R["Java Card Runtime Environment"]
-    R --> H["HelloApplet"]
-```
+Java Card VMがカード用バイトコードを実行し、JCRE（Java Card Runtime Environment）がAppletのインストール、選択、APDUの配送などを管理します。
+カードOS全体には通信やメモリー管理、製品固有の実装も含まれます。
+jCardSimはPCのJVM上でAPIの振る舞いをシミュレーションし、Appletの `.class` を直接実行するため、JUnitのデバッガーで処理を追跡できます。
 
-SimulatorはJava Card 3.2の機能動作を確認する参照実行環境です。
-実カードの処理速度、メモリ制約、耐タンパー性、電源断、製品固有APIまで保証するものではありません。
+## APDU仕様
 
-## 2. ソースから実行まで
-
-1. Oracle JDKの`javac`が`HelloApplet.java`をJavaクラスへコンパイルする。
-2. Oracle JCDK ToolsのConverterがクラスをJava CardのCAPファイルへ変換し、入力と出力を検証する。
-3. `HelloClient`がOracle AMServiceを使い、SCP03のセキュアチャネル経由でCAPをSimulatorへロードする。
-4. Runtime Environmentがアプレットをインストールし、SELECTされたアプレットへAPDUを配送する。
-5. テスト後、`HelloClient`がアプレットとCAPをSimulatorから削除する。
-
-CAPは実カードへ配備する単位です。この工程を通すことで、普通のJavaクラスとして動くだけでは見つからないJava Card言語サブセットや参照の問題も検出できます。
-
-## 3. SELECT APDU
-
-最初に、対象のアプレットをAIDで選択します。
+この課題は基本論理チャネルの短いAPDUを扱います。
 
 ```text
-00 A4 04 00 07 F0 54 55 42 45 01 01
+Command:  00 10 00 00 04
+Response: 50 49 4E 47 90 00
 ```
 
-| 部分 | 意味 |
-| --- | --- |
-| `00 A4 04 00` | AIDを指定するSELECTコマンドのヘッダ |
-| `07` | 後に続くデータ長（Lc） |
-| `F0 54 55 42 45 01 01` | 学習用アプレットAID |
-
-SELECTが成功するとRuntime Environmentが`HelloApplet`を選択状態にし、`9000`を返します。
-`process()`はSELECT通知でも呼ばれるため、コードでは`selectingApplet()`を確認して戻ります。
-
-## 4. HELLO APDU
-
-次に、データ部がなく応答データを要求する短いAPDU（Case 2S）を送ります。
-
-```text
-80 10 00 00 11
-```
-
-| バイト | 名前 | 今回の意味 |
+| 項目 | 値 | 意味 |
 | --- | --- | --- |
-| `80` | CLA | 教材で定義した独自コマンドクラス |
-| `10` | INS | HELLO命令 |
-| `00` | P1 | 追加パラメータなし |
-| `00` | P2 | 追加パラメータなし |
-| `11` | Le | 最大17バイトの応答データを受け取る |
+| CLA | `00` | この課題で受け付けるクラス |
+| INS | `10` | PING命令 |
+| P1 / P2 | `00 / 00` | 今回はパラメーターなし |
+| コマンドデータ | なし | LcもないCase 2のAPDU |
+| Le | `04` | ホストが受け取れる応答データ長、4バイト |
+| レスポンスデータ | `50 49 4E 47` | ASCIIの `PING` |
+| SW1 / SW2 | `90 / 00` | 正常終了 |
 
-返るデータはASCIIの`Hello, Java Card!`で、後ろに正常終了の`90 00`が付きます。
+`new CommandAPDU(0, 0x10, 0, 0, 4)` の最後の引数がLeです。
+4引数版ではLeが付かないため、この課題では5引数版を使います。短いAPDUのLeが `00` の場合は256バイトを意味します。
 
-```text
-48 65 6C 6C 6F 2C 20 4A 61 76 61 20 43 61 72 64 21 90 00
-```
+## 実行順序
 
-短いAPDUの`Le=00`は最大256バイトを意味します。
-PC側コードでは`new CommandAPDU(..., 256)`が`80 10 00 00 00`へ符号化され、同じ挨拶が返ることも検証します。
+1. テストが `CardSimulator` を作成します。
+2. `installApplet()` が `SampleApplet.install()` を呼びます。
+3. Appletが `register()` で実行環境へ登録されます。
+4. `selectApplet()` で選択し、SELECTを受けた `process()` が正常に戻ります。
+5. `transmitCommand()` がPINGを送り、選択されたAppletの `process()` が呼ばれます。
+6. Appletが4バイトを送信し、正常に戻ると実行環境が `9000` を付けます。
 
-## 5. カード側の処理
+AppletはJava SEの `main()` から起動しません。この課題はインストールパラメーターを使わないため、空の配列を読まず、引数なしの `register()` を使います。
+実機でもデフォルトApplet AIDを使う構成です。別のインスタンスAIDやパラメーターが必要なら、その形式を設計して実装・テストを追加します。
 
-[HelloApplet.java](../src/applet/java/io/github/tubesound/javacardbasic/card/HelloApplet.java)は次の順に処理します。
+## 異常系
 
-1. インストール時に応答用バイト配列を確保し、`register()`する。
-2. SELECT通知なら`selectingApplet()`で判別して戻る。
-3. APDUバッファからCLA、INS、P1、P2を読む。
-4. `setOutgoing()`でPC側が指定したLeを取得する。
-5. Leが不足していれば`6C11`を返す。
-6. 応答長を設定し、バッファへコピーして送信する。
-
-カード側ではコマンドごとの一時オブジェクト生成を避け、APDUバッファの参照をフィールドへ保存しません。
-正常終了の`9000`はRuntime Environmentが追加します。
-
-## 6. ステータスワードも仕様にする
-
-| 条件 | 応答SW |
-| --- | --- |
-| 正常終了 | `9000` |
-| CLAが`80`以外 | `6E00` |
-| INSが`10`以外 | `6D00` |
-| P1またはP2が0以外 | `6A86` |
-| Leが17未満 | `6C11` |
-
-[HelloClient.java](../src/client/java/io/github/tubesound/javacardbasic/client/HelloClient.java)は、この表を実際のOracle Simulatorに対して検証します。
-テストフレームワークを介さず、送ったAPDU、受け取ったデータ、SWを表示し、違えばプロセスを失敗させます。
-
-## 7. 自分で変更して確かめる
-
-**実験A: 未対応命令を送る**
-
-`HelloClient`のINSを`0x10`から`0x11`へ変えると`6D00`になります。
-
-**実験B: 応答長を変える**
-
-HELLOのLeを17から16へ変えると`6C11`になります。256なら送信バイトは`Le=00`となり、正常応答になります。
-
-**実験C: 応答を変える**
-
-`HelloApplet`の末尾を`'!'`から`'?'`へ変えます。CAPを再作成するとクライアントの期待値と不一致になり、検証が失敗します。仕様として変える場合は、PC側の期待値と設計資料も同時に更新します。
-
-## 8. 基本設計に残すこと
-
-| 設計項目 | 第1回で決めたこと | 製品設計で次に決めること |
+| 条件 | SW | 意味 |
 | --- | --- | --- |
-| 処理分担 | PCが要求し、アプレットが応答する | 製品機能のうちカード内へ置く範囲 |
-| 識別 | 学習用AIDでCAPとアプレットを識別する | 登録済みRIDを含む製品用AID体系 |
-| 通信 | 基本チャネル、Case 2SのHELLO | 入力データ、最大長、T=0/T=1などの条件 |
-| データ | 固定応答をインストール時に確保する | 永続データ、一時データ、更新単位 |
-| エラー | 不正ヘッダと不足LeをSWで通知する | 再送、認証失敗、ロックの状態遷移 |
-| 配備 | CAPをSCP03でロードしてインストールする | 実カードのCard Manager、鍵管理、ライフサイクル |
-| 実行基盤 | Oracle JCDK Simulator 26.0 | 採用カード、Java Card版、製品固有SDK |
+| 正常なPING | `9000` | データ4バイトあり |
+| CLAが `00` 以外 | `6E00` | 未対応のCLA |
+| INSが `10` 以外 | `6D00` | 未対応の命令 |
+| P1またはP2が0以外 | `6A86` | パラメーター不正 |
+| Leが4未満 | `6C04` | 応答を4バイト受け取れるように再送する |
 
-## 公式API
+エラー時はデータを返しません。CLA、INS、P1/P2、Leの順に判定します。
+PINGは受信データのないCase 2なので、`setOutgoing()` で応答を開始します。
+`setIncomingAndReceive()` はCase 3／4用です。PINGで呼ぶと、T=0ではLeをLcとして扱うなどの誤動作につながります。
+Leなしや受信データ付きのPINGはこの命令の仕様外で、その応答は保証しません。
+受信データを扱う命令、分割受信、拡張APDU、複数論理チャネルは次の課題です。
+[Oracle APDU API](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/javacard/framework/APDU.html)
 
-- [APDU](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/javacard/framework/APDU.html)
-- [Applet](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/javacard/framework/Applet.html)
-- [ISO7816](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/javacard/framework/ISO7816.html)
-- [CommandAPDU](https://docs.oracle.com/en/java/javase/25/docs/api/java.smartcardio/javax/smartcardio/CommandAPDU.html)
+## 基本設計で次に決めること
+
+| 設計対象 | 決める内容 |
+| --- | --- |
+| 対象カード | Java Cardバージョン、API・暗号アルゴリズム、メモリー容量 |
+| APDU仕様 | CLA、INS、P1/P2、Lc/Le、データ形式、SW、再送時の扱い |
+| AID | パッケージ、Applet、インスタンスの識別子 |
+| データ保存 | 永続データと一時データ、電源断時の整合性 |
+| 認証 | PIN照合、試行回数、認証状態の解除タイミング |
+| 配布・更新 | GlobalPlatform、ロード権限、鍵、更新とデータ移行 |
+
+まずPINGを別の4文字に変更し、テストも変えてみてください。
+次に命令を1つ追加し、テストを先に書いてからAppletを実装します。
+カウンター、一時メモリー、PINの順に進めると、基本設計上の判断をコードで確かめられます。
+
+## 参考資料
+
+- [Oracle Java Card 3.0.5仕様・API](https://docs.oracle.com/javacard/3.0.5/index.html)
+- [jCardSim forkの説明](https://github.com/ph4r05/jcardsim)
+- [Java SE CommandAPDU](https://docs.oracle.com/en/java/javase/25/docs/api/java.smartcardio/javax/smartcardio/CommandAPDU.html)

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.tubesound</groupId>
+    <artifactId>javacard-basic</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+    <name>JavaCardBasic</name>
+    <description>Java Card 3.0.5 applet exercises with Maven and jCardSim</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- PC JDK and applet class-file version are different settings. -->
+        <maven.compiler.release>8</maven.compiler.release>
+        <maven.compiler.testRelease>11</maven.compiler.testRelease>
+        <jcardsim.version>3.0.6.0</jcardsim.version>
+        <junit.version>5.14.4</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- Central-published fork: https://github.com/ph4r05/jcardsim
+             Supplies API classes for editing and simulation only.
+             CAP builds recompile against Oracle's 3.0.5 API jar. -->
+        <dependency>
+            <groupId>com.klinec</groupId>
+            <artifactId>jcardsim</artifactId>
+            <version>${jcardsim.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+                <configuration>
+                    <debug>true</debug>
+                    <debuglevel>lines,vars,source</debuglevel>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.5</version>
+                <configuration>
+                    <failIfNoTests>true</failIfNoTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

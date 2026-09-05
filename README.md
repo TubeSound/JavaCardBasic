@@ -1,76 +1,82 @@
 # JavaCardBasic
 
-Java Card OSを、アプレットを作って動かしながら学ぶためのリポジトリです。
-第1回では、PCからAPDUを送り、カード側の`HelloApplet`が応答するまでを確認します。
+Windows 11・VS Code・Maven・jCardSimで、Java Card Appletを動かしながら学ぶプロジェクトです。
+最初の課題は、APDUコマンド `00 10 00 00 04` に対して `PING` と成功ステータス `9000` を返すことです。
 
-## Oracle製ツールチェーン
+**まずSDKなしでJUnitテストとステップ実行を始め、必要になったらOracleのConverterでJava Card 3.0.5向けCAPを作成します。**
 
-Javaの開発・実行に使う製品を、次のOracle公式配布物に統一しています。
+## 採用する構成
 
-| 用途 | 製品 | バージョン |
-| --- | --- | --- |
-| Javaコンパイル・PC側実行 | Oracle JDK | 25 (64 bit) |
-| アプレットのCAP変換・検証 | Oracle Java Card Development Kit Tools | 26.0 |
-| Java Card実行環境 | Oracle Java Card Development Kit Simulator | 26.0 |
-| Simulatorへの配備 | Oracle AMService | Simulator 26.0同梱 |
-| Simulatorとの通信 | Oracle Socket Provider | Simulator 26.0同梱 |
+導入手順の見直し基準日: 2026-09-05。Mavenとライブラリのバージョンは再現性のため固定しています。
 
-ビルド依存として外部パッケージ管理ツールや別実装のSimulatorを使いません。
-GitHubはソース管理、WindowsまたはLinuxのシェルは起動操作にだけ使います。
-Oracle公式ではJCDK 26.0をOracle JDK 25で検証しています。
+| 役割 | 採用するもの |
+| --- | --- |
+| 開発PC | Windows 11 x64 |
+| PCでMaven・テスト・Converterを実行するJDK | **Oracle JDK 25 x64** |
+| エディター | VS Code + Extension Pack for Java |
+| ビルド | Apache Maven 3.9.16（Maven Wrapper同梱） |
+| シミュレーター | `com.klinec:jcardsim:3.0.6.0`（Java Card 3.0.5 APIを扱うfork） |
+| テスト | JUnit Jupiter 5.14.4 + Maven Surefire 3.5.5 |
+| CAP変換ツール（追加導入） | **Oracle Java Card Development Kit Tools 26.0** |
+| カード側の対象 | **Java Card Classic 3.0.5**（`-target 3.0.5`） |
+| Appletの中間クラス形式 | Java 8形式（`--release 8 -g`、major version 52） |
 
-## 最初に読む順番
+JDKの25、Toolsの26.0、Java Cardの3.0.5、クラス形式の8は、それぞれ別の番号です。
+Java SE 25の機能がカード上で使える、という意味ではありません。
 
-1. [Oracle環境のセットアップ](docs/00-oracle-toolchain.md)
-2. [第1回: Java Card OSとAPDU](docs/01-apdu-and-runtime.md)
-3. [カード側コード](src/applet/java/io/github/tubesound/javacardbasic/card/HelloApplet.java)
-4. [PC側コード](src/client/java/io/github/tubesound/javacardbasic/client/HelloClient.java)
+提案されていたJDK 11＋旧SDK 3.0.5＋source/target 11は、公式の確認環境と一致しません。
+旧SDKの資料はJDK 7／8を記載しています。現行ToolsはJDK 25を推奨し、3.0.5向けCAPも生成できます。
+採用理由と提案から修正した箇所は[導入案の検証結果](docs/03-validation.md)を参照してください。
 
-## 実行の流れ
+## 最初にテストを動かす
 
-Windows PowerShellでは次の順に実行します。
+1. [Windowsの導入手順](docs/00-windows-setup.md)に従い、Oracle JDK 25とVS Codeを準備します。
+2. このリポジトリを取得し、`pom.xml` があるフォルダーをVS Codeで開きます。
+3. VS CodeのPowerShellターミナルで実行します。
 
 ```powershell
-# 初回のみ。展開直後のSimulatorを学習用SCP03鍵で構成する
-.\scripts\provision-simulator.ps1
-
-# アプレットをコンパイルしてCAPへ変換し、PC側クライアントもコンパイルする
-.\scripts\build.ps1
-
-# ターミナル1
-.\scripts\start-simulator.ps1
-
-# ターミナル2
-.\scripts\run.ps1
+.\mvnw.cmd --version
+.\mvnw.cmd clean test
 ```
 
-Ubuntu 24.04またはOracle Linux 9では、対応する`.sh`を使います。
+初回はMavenと依存ライブラリをダウンロードします。手動導入済みのMavenでは `mvn clean test` でも実行できます。
+テスト結果の目安は `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0` と `BUILD SUCCESS` です。
+Oracle Java Card SDK、カード、カードリーダーは、このテストには不要です。
 
-```bash
-./scripts/provision-simulator.sh
-./scripts/build.sh
-# ターミナル1
-./scripts/start-simulator.sh
-# ターミナル2
-./scripts/run.sh
+## VS Codeでステップ実行
+
+1. [SampleApplet.java](src/main/java/io/github/tubesound/javacardbasic/card/SampleApplet.java) の `process()` 内、CLA判定行にブレークポイントを置きます。
+2. [SampleAppletTest.java](src/test/java/io/github/tubesound/javacardbasic/card/SampleAppletTest.java) の `pingReturnsFourBytesAndSuccess()` を開きます。
+3. テストの上の **Debug Test**、またはTestingビューのデバッグボタンを選びます。
+4. F10／F11で進め、`buffer` の先頭5バイトと `le` を確認します。
+
+ここで停止するのはPC上のjCardSimが呼び出したJavaクラスです。実機やOracle Simulator内のCAPに接続するデバッグではありません。
+
+## CAPを生成する
+
+[Oracle Toolsの追加導入](docs/02-build-cap.md)を済ませて `JC_HOME_TOOLS` を設定し、`Ctrl+Shift+B` を押します。
+ターミナルからも同じ処理を実行できます。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\build-cap.ps1
 ```
 
-`run`はOracle AMServiceでCAPをロード・インストールし、正常系と異常系のAPDUを検証してからアンインストールします。
-成功時は最後に`All APDU checks passed.`と表示されます。
+テスト、Oracle APIでの再コンパイル、Converterの変換・検証が順に実行されます。
+出力は `target/cap/io/github/tubesound/javacardbasic/card/javacard/` 内の `card.cap`、`card.exp`、`card.jca` です。
 
-## AID
+`mvn package` が生成するJARはCAPではありません。実機へのロードは、カード製品、GlobalPlatform設定、発行者の鍵に合わせて別途設計します。
 
-| 対象 | AID |
+## 学習用の資料
+
+| 資料 | 内容 |
 | --- | --- |
-| CAPパッケージ | `F0 54 55 42 45 01` |
-| アプレットクラス／インスタンス | `F0 54 55 42 45 01 01` |
+| [Windowsの導入手順](docs/00-windows-setup.md) | JDK、Maven、VS Code、デバッグ、トラブル解決 |
+| [APDUと実行環境](docs/01-apdu-and-runtime.md) | コマンド仕様、JCREの役割、基本設計で決めること |
+| [CAP生成](docs/02-build-cap.md) | Toolsの配置、出力先、AID、変換の流れ |
+| [導入案の検証結果](docs/03-validation.md) | 修正理由、公式資料、検証範囲 |
 
-これらは学習用の値です。製品用AIDを決定したものではありません。
+GitHub ActionsではWindowsとLinux上のOracle JDK 25でシミュレーションテストを実行します。
+WindowsのCIランナーはWindows Server系であり、Windows 11のVS Code画面操作を検証するものではありません。
+CAP変換と実機での動作は別途確認します。
 
-## 公式資料
-
-- [Oracle Java Card Downloads](https://www.oracle.com/java/technologies/javacard-downloads.html)
-- [Oracle JDK Downloads](https://www.oracle.com/java/technologies/downloads/)
-- [Java Card Development Kit Simulator User Guide 26.0](https://docs.oracle.com/en/java/javacard/3.2/jcdksu/index.html)
-- [Java Card Development Kit Tools User Guide 26.0](https://docs.oracle.com/en/java/javacard/3.2/jctug/index.html)
-- [Java Card API 3.2](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/index.html)
+プロジェクトのコードは[MIT License](LICENSE)、同梱Maven WrapperはApache License 2.0です。[第三者ソフトウェア](THIRD_PARTY_NOTICES.md)も参照してください。

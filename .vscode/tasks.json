@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Java Card: Test (jCardSim)",
+            "type": "process",
+            "command": "cmd.exe",
+            "args": ["/d", "/c", ".\\mvnw.cmd", "test"],
+            "options": {"cwd": "${workspaceFolder}"},
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Java Card: Build & Convert CAP (3.0.5)",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy", "RemoteSigned",
+                "-File", "${workspaceFolder}/scripts/build-cap.ps1"
+            ],
+            "options": {"cwd": "${workspaceFolder}"},
+            "group": {"kind": "build", "isDefault": true},
+            "problemMatcher": []
+        }
+    ]
+}
