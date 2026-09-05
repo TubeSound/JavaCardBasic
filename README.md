@@ -1,80 +1,76 @@
 # JavaCardBasic
 
-Java Cardを使ったシステムの基本設計に向けて、**コードを動かしながら、アプレットと実行環境の役割を学ぶ**リポジトリです。
+Java Card OSを、アプレットを作って動かしながら学ぶためのリポジトリです。
+第1回では、PCからAPDUを送り、カード側の`HelloApplet`が応答するまでを確認します。
 
-第1回は、PC上のシミュレータにコマンドを送り、`Hello, Java Card!`を受け取ります。
-カードやリーダーを用意する前に、APDU通信とアプレットの呼び出しを確かめます。
+## Oracle製ツールチェーン
 
-## 最初に読むコード
+Javaの開発・実行に使う製品を、次のOracle公式配布物に統一しています。
 
-| ファイル | 役割 |
-| --- | --- |
-| [HelloApplet.java](src/main/java/io/github/tubesound/javacardbasic/card/HelloApplet.java) | カード側。受信コマンドの確認と応答 |
-| [HelloDemo.java](src/main/java/io/github/tubesound/javacardbasic/host/HelloDemo.java) | PC側。シミュレータの準備、コマンド送信、結果表示 |
-| [HelloAppletTest.java](src/test/java/io/github/tubesound/javacardbasic/HelloAppletTest.java) | 正常応答、エラー応答、長さの境界を確認 |
-| [第1回の解説](docs/01-apdu-and-runtime.md) | OS・実行環境・アプレットの関係と、基本設計への反映 |
+| 用途 | 製品 | バージョン |
+| --- | --- | --- |
+| Javaコンパイル・PC側実行 | Oracle JDK | 25 (64 bit) |
+| アプレットのCAP変換・検証 | Oracle Java Card Development Kit Tools | 26.0 |
+| Java Card実行環境 | Oracle Java Card Development Kit Simulator | 26.0 |
+| Simulatorへの配備 | Oracle AMService | Simulator 26.0同梱 |
+| Simulatorとの通信 | Oracle Socket Provider | Simulator 26.0同梱 |
 
-## 実行する
+ビルド依存として外部パッケージ管理ツールや別実装のSimulatorを使いません。
+GitHubはソース管理、WindowsまたはLinuxのシェルは起動操作にだけ使います。
+Oracle公式ではJCDK 26.0をOracle JDK 25で検証しています。
 
-必要なものは**JDK 17**とGitです。Mavenは同梱のWrapperが取得するため、別途インストールする必要はありません。
-初回はMavenと依存ライブラリをダウンロードするため、インターネット接続が必要です。
+## 最初に読む順番
 
-JDKは[Adoptium](https://adoptium.net/temurin/releases/?version=17)などから用意できます。
-`java -version`と`javac -version`で17系が表示されることを確認してください。
-`JAVA_HOME`を設定する場合は、JDKのインストール先を指定します（末尾の`bin`は含めません）。
+1. [Oracle環境のセットアップ](docs/00-oracle-toolchain.md)
+2. [第1回: Java Card OSとAPDU](docs/01-apdu-and-runtime.md)
+3. [カード側コード](src/applet/java/io/github/tubesound/javacardbasic/card/HelloApplet.java)
+4. [PC側コード](src/client/java/io/github/tubesound/javacardbasic/client/HelloClient.java)
 
-### Windows / PowerShell
+## 実行の流れ
+
+Windows PowerShellでは次の順に実行します。
 
 ```powershell
-git clone https://github.com/TubeSound/JavaCardBasic.git
-cd JavaCardBasic
-git switch learning/lesson-01-apdu
-.\mvnw.cmd test
-.\mvnw.cmd -q compile exec:java
+# 初回のみ。展開直後のSimulatorを学習用SCP03鍵で構成する
+.\scripts\provision-simulator.ps1
+
+# アプレットをコンパイルしてCAPへ変換し、PC側クライアントもコンパイルする
+.\scripts\build.ps1
+
+# ターミナル1
+.\scripts\start-simulator.ps1
+
+# ターミナル2
+.\scripts\run.ps1
 ```
 
-### WSL / Linux / macOS
+Ubuntu 24.04またはOracle Linux 9では、対応する`.sh`を使います。
 
 ```bash
-git clone https://github.com/TubeSound/JavaCardBasic.git
-cd JavaCardBasic
-git switch learning/lesson-01-apdu
-./mvnw test
-./mvnw -q compile exec:java
+./scripts/provision-simulator.sh
+./scripts/build.sh
+# ターミナル1
+./scripts/start-simulator.sh
+# ターミナル2
+./scripts/run.sh
 ```
 
-既にcloneしている場合は、そのフォルダで`git fetch origin`してから学習用ブランチに切り替えてください。
+`run`はOracle AMServiceでCAPをロード・インストールし、正常系と異常系のAPDUを検証してからアンインストールします。
+成功時は最後に`All APDU checks passed.`と表示されます。
 
-デモのHELLO部分では、次の内容が表示されます。
+## AID
 
-```text
-[HELLO]
-C: 80 10 00 00 11
-R: 48 65 6C 6C 6F 2C 20 4A 61 76 61 20 43 61 72 64 21 90 00
-SW: 9000
-Text: Hello, Java Card!
-```
+| 対象 | AID |
+| --- | --- |
+| CAPパッケージ | `F0 54 55 42 45 01` |
+| アプレットクラス／インスタンス | `F0 54 55 42 45 01 01` |
 
-`C`は送信したコマンド、`R`は返ってきた応答です。
-最後の`90 00`は正常終了を表すステータスワード（SW）で、文字列には含まれません。
-続いて、未対応命令の`6D00`と、指定した応答長が足りない場合の`6C11`も表示します。
+これらは学習用の値です。製品用AIDを決定したものではありません。
 
-## 何を使って動かしているか
+## 公式資料
 
-- ビルド・実行：JDK 17、Maven 3.9.9（Maven Wrapper経由）
-- シミュレータ：`com.klinec:jcardsim:3.0.6.0`（[ph4r05によるjCardSim配布版](https://github.com/ph4r05/jcardsim#readme)）
-- テスト：JUnit Jupiter 5.10.3
-
-jCardSimはPCのJVM上でアプレットの`.class`ファイルを動かします。
-このリポジトリのMaven設定はシミュレータ用のビルドで、実カードに入れるCAPファイルは生成しません。
-`maven.compiler.release=17`もPC用のクラス形式の指定であり、Java Cardのバージョンを表す値ではありません。
-依存ライブラリの`3.0.6.0`は配布物のバージョンです。対象製品のJava Card仕様の版は、別に確認します。
-
-**ここで作るのは学習用アプレットです。OS内部の実装は、まず実行環境との接点から理解していきます。**
-実カードでのCAP変換・搭載、通信プロトコル、電源断、永続化、トランザクション、アプレット間の分離は、この第1回では検証していません。
-
-## 次に行うこと
-
-まず[第1回の解説](docs/01-apdu-and-runtime.md)を読み、`80 10 00 00 11`の意味と、誰が`process()`を呼ぶかをコードで確認します。
-その後、HELLOの応答や命令番号を変更して、デモとテストに結果が表れることを確かめます。
-次の題材は、コマンドのデータ受信と、RAM・永続データの扱いです。
+- [Oracle Java Card Downloads](https://www.oracle.com/java/technologies/javacard-downloads.html)
+- [Oracle JDK Downloads](https://www.oracle.com/java/technologies/downloads/)
+- [Java Card Development Kit Simulator User Guide 26.0](https://docs.oracle.com/en/java/javacard/3.2/jcdksu/index.html)
+- [Java Card Development Kit Tools User Guide 26.0](https://docs.oracle.com/en/java/javacard/3.2/jctug/index.html)
+- [Java Card API 3.2](https://docs.oracle.com/en/java/javacard/3.2/jcapi/api_classic/index.html)
