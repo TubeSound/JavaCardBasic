@@ -183,7 +183,9 @@ public final class FileSystemApplet extends Applet {
             ISOException.throwIt(SW_SECURITY_STATUS_NOT_SATISFIED);
         }
         short fileOffset = unsignedP1P2(buffer);
-        short incomingLength = apdu.getIncomingLength();
+        // This lesson accepts short APDUs only. OFFSET_LC is available before
+        // entering incoming mode; getIncomingLength() is not.
+        short incomingLength = (short) (buffer[ISO7816.OFFSET_LC] & 0xFF);
         if (incomingLength == 0
                 || fileOffset > wef.getCapacity()
                 || incomingLength > (short) (wef.getCapacity() - fileOffset)) {
@@ -204,11 +206,12 @@ public final class FileSystemApplet extends Applet {
     }
 
     private short receiveExact(APDU apdu, short expectedLength) {
-        if (apdu.getIncomingLength() != expectedLength) {
+        short total = apdu.setIncomingAndReceive();
+        short incomingLength = apdu.getIncomingLength();
+        short dataOffset = apdu.getOffsetCdata();
+        if (incomingLength != expectedLength) {
             ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
         }
-        short dataOffset = apdu.getOffsetCdata();
-        short total = apdu.setIncomingAndReceive();
         while (total < expectedLength) {
             short count = apdu.receiveBytes((short) (dataOffset + total));
             if (count <= 0) {
