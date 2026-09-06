@@ -40,7 +40,7 @@ Java SE 25の機能がカード上で使える、という意味ではありま�
 ```
 
 初回はMavenと依存ライブラリをダウンロードします。手動導入済みのMavenでは `mvn clean test` でも実行できます。
-テスト結果の目安は `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0` と `BUILD SUCCESS` です。
+テスト結果の目安は `Failures: 0, Errors: 0, Skipped: 0` と `BUILD SUCCESS` です。
 Oracle Java Card SDK、カード、カードリーダーは、このテストには不要です。
 
 ## VS Codeでステップ実行
@@ -55,6 +55,27 @@ Oracle Java Card SDK、カード、カードリーダーは、このテストに
 以前の版で `Cannot find the class file for javax.smartcardio.CommandAPDU` が表示された場合は、最新のmainを取得し、コマンドパレットから **Java: Clean Java Language Server Workspace** → **Reload and delete** を実行してください。
 
 ここで停止するのはPC上のjCardSimが呼び出したJavaクラスです。実機やOracle Simulator内のCAPに接続するデバッグではありません。
+
+## COD・IEF・WEFのサンプル
+
+2つ目の課題として、論理ファイルとメモリ寿命を分離した
+[FileSystemApplet](src/main/java/io/github/tubesound/javacardbasic/card/FileSystemApplet.java)を追加しています。
+このプロジェクトでは **CODをtransientメモリ領域** と定義します。
+
+- `CodMemory`: `CLEAR_ON_DESELECT`と`CLEAR_ON_RESET`の一時配列
+- `WefFile`: 通常データを保持する永続オブジェクト
+- `IefFile`: 外部読出しを許さない内部EF
+- `KeyObject`: `OwnerPIN`を隠蔽する鍵オブジェクト
+
+個別テストは次のコマンドで実行できます。
+
+```powershell
+.\\mvnw.cmd -Dtest=FileSystemAppletTest test
+```
+
+コマンド、クラス構成、選択解除とリセットによる状態変化は
+[COD・IEF・WEF・鍵オブジェクト](docs/04-cod-ief-wef.md)で解説します。
+JPKI固有のAID、証明書、鍵、APDUはまだ扱いません。
 
 ## CAPを生成する
 
@@ -78,9 +99,11 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\scripts\build-ca
 | [APDUと実行環境](docs/01-apdu-and-runtime.md) | コマンド仕様、JCREの役割、基本設計で決めること |
 | [CAP生成](docs/02-build-cap.md) | Toolsの配置、出力先、AID、変換の流れ |
 | [導入案の検証結果](docs/03-validation.md) | 修正理由、公式資料、検証範囲 |
+| [COD・IEF・WEF・鍵オブジェクト](docs/04-cod-ief-wef.md) | 論理EF、transientメモリ、鍵クラス、ライフサイクル |
 
 GitHub ActionsではWindowsとLinux上のOracle JDK 25でシミュレーションテストを実行します。
 WindowsのCIランナーはWindows Server系であり、Windows 11のVS Code画面操作を検証するものではありません。
 CAP変換と実機での動作は別途確認します。
 
 プロジェクトのコードは[MIT License](LICENSE)、同梱Maven WrapperはApache License 2.0です。[第三者ソフトウェア](THIRD_PARTY_NOTICES.md)も参照してください。
+

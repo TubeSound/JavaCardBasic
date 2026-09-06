@@ -59,6 +59,8 @@ try {
             '-out', 'CAP', 'EXP', 'JCA',
             '-applet', '0xf0:0x54:0x55:0x42:0x45:0x01:0x01',
             'io.github.tubesound.javacardbasic.card.SampleApplet',
+            '-applet', '0xf0:0x54:0x55:0x42:0x45:0x02:0x01',
+            'io.github.tubesound.javacardbasic.card.FileSystemApplet',
             'io.github.tubesound.javacardbasic.card',
             '0xf0:0x54:0x55:0x42:0x45:0x01', '1.0'
         )
@@ -83,3 +85,4 @@ try {
     [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
+
