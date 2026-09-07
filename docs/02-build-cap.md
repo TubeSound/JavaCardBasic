@@ -76,14 +76,14 @@ target/cap/io/github/tubesound/javacardbasic/card/javacard/card.jca
 | 設定 | 値 |
 | --- | --- |
 | パッケージ | `io.github.tubesound.javacardbasic.card` |
-| Appletクラス | `io.github.tubesound.javacardbasic.card.SampleApplet` |
+| PING Appletクラス／AID | `SampleApplet`／`F0545542450101` |
+| ファイル学習Appletクラス／AID | `FileSystemApplet`／`F0545542450201` |
 | パッケージAID | `F05455424501` |
-| Applet AID | `F0545542450101` |
 | パッケージバージョン | `1.0` |
 | 対象API / CAP形式 | Java Card 3.0.5 / compact 2.2 |
 
-AIDは学習用の独自値です。実製品では発行者の割り当てに合わせます。
-Applet AIDを変える場合はCAPスクリプトと `SampleAppletTest` の両方を変更します。
+1つのCAPに2つのApplet定義が含まれます。AIDは学習用の独自値です。実製品では発行者の割り当てに合わせます。
+Applet AIDを変える場合はCAPスクリプトと対応するテストの両方を変更します。
 このサンプルはデフォルトのApplet AIDで登録するため、別のインスタンスAIDを使う設計は追加実装が必要です。
 
 ## 5. CAPができた後
@@ -99,3 +99,4 @@ CIはjCardSimテストを行います。Oracle Tools本体によるCAP変換とW
 - [Tools 26.0のユーザーガイド](https://docs.oracle.com/en/java/javacard/3.2/jctug/index.html)
 - [コンパイラー設定（Java 25、release 8、デバッグ情報）](https://docs.oracle.com/en/java/javacard/3.2/jctug/setting-java-compiler-options.html)
 - [対象バージョンとCAP形式](https://docs.oracle.com/en/java/javacard/3.2/jctug/using-converter-target-java-card-version.html)
+
